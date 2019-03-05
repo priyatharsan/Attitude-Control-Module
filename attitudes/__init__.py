@@ -62,16 +62,16 @@ class att():
             return 'DCM Attitude description is \n {}'.format(self.DCM)
         elif self.type == 'PRV':
             statement =  ''' \n 
-            {} Attitude description is: \n e = {} \n Phi = {} \n
+            {} Attitude description is: \n e = {} \n Phi = {} {} \n
             \n DCM description is: \n {} \n 
             '''
-            return statement.format(self.type,list(self.vec),self.phi,self.DCM)
+            return statement.format(self.type,list(self.vec),self.phi,self.units,self.DCM)
         elif self.type == 'Euler Angle':
             statement =  '\n {} {} Attitude description is: \n {} {} \n \n DCM description is: \n {} \n'
             return statement.format(self.order,self.type,list(self.vec),self.units,self.DCM)
         else:
             statement =  '\n {} Attitude description is: \n {} \n \n DCM description is: \n {} \n'
-            return statement.format(self.type,list(self.vec),self.DCM)
+            return statement.format(self.type,np.array(self.vec).flatten(),self.DCM)
 
     @classmethod
     def _from_eul_ang(cls,type,ang1,ang2,ang3,units='deg'):
@@ -98,7 +98,7 @@ class att():
         return cls(DCM,'Euler Angle',angle_vec=angle_vec,units=units,euler_type=type)
     
     @classmethod
-    def _from_PRV(cls,vec,phi=1,units='rad'):
+    def _from_PRV(cls,vec,phi=None,units='rad'):
         ''' Definition from Principle Rotation Vector
         
         Takes either a vector with norm != 1 or a normalized vector and a phi rotation magnitude
@@ -109,7 +109,7 @@ class att():
             phi: (float) optional, rotation magnitude
             units: (string) either 'rad' or 'deg' to specify units for phi
         '''
-        if np.abs(LA.norm(vec)-1) > 1e-13:
+        if not phi:
             phi = LA.norm(vec)
             vec = vec/LA.norm(vec)
         if units=='deg':
@@ -121,6 +121,8 @@ class att():
         C = np.array([[e1*e1*sigma+cphi,e1*e2*sigma+e3*sphi,e1*e3*sigma - e2*sphi],
                       [e2*e1*sigma - e3*sphi,e2**2*sigma+cphi,e2*e3*sigma+e1*sphi],
                       [e3*e1*sigma+e2*sphi,e3*e2*sigma-e1*sphi,e3**2*sigma+cphi]])
+        if units=='deg':
+            phi = np.degrees(phi)
         return cls(C,'PRV', units=units, angle_vec=np.array(vec), phi=phi)
     
     @classmethod
@@ -151,7 +153,7 @@ class att():
         Arguments:
             vec: (list) of CRP values
         '''
-        q = np.atleast_2d(vec).T
+        q = np.atleast_2d(vec).reshape(3,1)
         C = (1/(1+q.T@q))*((1-q.T@q)*np.eye(3) + 2 * q @ q.T - 2 * tilde(q))
 #        q1,q2,q3 = q.reshape(np.size(vec))
 #        C = np.array([[1+q1**2-q2**2-q3**2, 2*(q1*q2+q3),           2*(q1*q3-q2)],
@@ -200,7 +202,7 @@ class att():
             ang1,ang2,ang3 = np.degrees([ang1,ang2,ang3])
         return self._from_eul_ang(type,ang1,ang2,ang3,units=units)
     
-    def _to_PRV(self):
+    def _to_PRV(self, units='rad'):
         '''Conversion to Principle Rotation Vector. Always done from the DCM. Doesn't need to
         take any arguments
         
@@ -210,7 +212,9 @@ class att():
         C = self.DCM
         phi = np.arccos(0.5*(C[0,0]+C[1,1]+C[2,2]-1))
         e = (1/(2*np.sin(phi)))*np.array([C[1,2]-C[2,1],C[2,0]-C[0,2],C[0,1]-C[1,0]])
-        return self._from_PRV(e,phi)
+        if units=='deg':
+            phi = np.degrees(phi)
+        return self._from_PRV(e,phi=phi,units=units)
         
     def _to_quat(self, path='short'):
         '''If the object is a classical or modified Rodriguez parameter object, directly converts
@@ -487,7 +491,7 @@ def invert(att_desc):
         return att._from_PRV(att_desc.vec, phi, units = att_desc.units)
     elif att_desc.type == 'Quaternions':
         b0,b1,b2,b3 = att_desc.vec
-        return att._from_quat(-np.array([b0,-b1,-b2,-b3]))
+        return att._from_quat(np.array([b0,-b1,-b2,-b3]))
     elif att_desc.type == 'CRP':
         return att._from_CRP(-np.array(att_desc.vec))
     elif att_desc.type == 'MRP':
