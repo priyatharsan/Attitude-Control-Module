@@ -1,3 +1,5 @@
+name = "Attitudes"
+
 ''' Attitude Control Module
 
 Ok, so the principle behind this module is the base class "att", which represents an attitude
