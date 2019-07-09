@@ -1,0 +1,3 @@
+dist/*
+ENV/*
+*.egg-info

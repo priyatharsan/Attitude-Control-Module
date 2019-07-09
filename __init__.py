@@ -1,4 +1,4 @@
-name = "Attitudes"
+name = "attitudes"
 
 ''' Attitude Control Module
 
