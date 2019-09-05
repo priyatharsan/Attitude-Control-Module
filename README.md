@@ -1,7 +1,7 @@
 # Attitude-Control-Module
 This attitude module is written to be a broadly useful way to perform simple
 attitude determination/kinematics/controls tasks in a python environment. For
-the most part, the class centers around the "att" class, which can take the
+the most part, the module centers around the "att" class, which can take the
 form:
 
 - DCM
